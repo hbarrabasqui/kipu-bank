@@ -40,9 +40,4 @@ Incluye:
   - `KipuBank_Deposito(address usuario, uint256 monto)`
   - `KipuBank_Retiro(address usuario, uint256 monto)`
 
----
 
-## Dirección en testnet
-- Contrato desplegado en **Sepolia**:  
-- https://sepolia.etherscan.io/address/0x3F470e3617f28009a12f074EdB6b85D0C185434a#code
-- Contrato: 0x3F470e3617f28009a12f074EdB6b85D0C185434a
