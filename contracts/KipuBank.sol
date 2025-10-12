@@ -10,8 +10,6 @@ contract KipuBank {
     // ====================
     // ====== ERRORS ======
     // ====================
-    /// @notice Error cuando el depósito es cero o fuera de los límites
-    error KipuBank_DepositoFueraDeLimite();
     /// @notice Error cuando el banco ha alcanzado su capacidad máxima
     error KipuBank_BancoSinCapacidad();
     /// @notice Error cuando el usuario no tiene saldo suficiente
@@ -22,6 +20,10 @@ contract KipuBank {
     error KipuBank_TransferenciaFallida();
     /// @notice Error cuando se detecta reentrancia
     error KipuBank_ReentranciaDetectada();
+    /// @notice Error cuando el monto es cero
+    error KipuBank_MontoCero();
+    /// @notice Error cuando la transacción no está permitida
+    error KipuBank_TransaccionNoPermitida();
 
     // ====================
     // ===== VARIABLES ====
@@ -30,8 +32,8 @@ contract KipuBank {
     uint256 public immutable i_limitePorTransaccion;
     /// @notice Capacidad máxima total de depósitos del banco
     uint256 public immutable i_bankCap;
-    /// @notice Total de depósitos en el banco
-    uint256 public s_totalDepositos;
+    /// @notice Balance total actual del contrato bancario
+    uint256 public s_totalBalance;
     /// @notice Cantidad total de depósitos realizados
     uint256 public s_cantidadDepositos;
     /// @notice Cantidad total de retiros realizados
@@ -73,7 +75,7 @@ contract KipuBank {
     /// @notice Modificador que verifica que el monto sea mayor a cero
     /// @param _monto Monto a verificar
     modifier montoMayorQueCero(uint256 _monto) {
-        if (_monto == 0) revert KipuBank_DepositoFueraDeLimite();
+        if (_monto == 0) revert KipuBank_MontoCero();
         _;
     }
 
@@ -97,7 +99,7 @@ contract KipuBank {
         }
 
         s_saldos[msg.sender] += msg.value;
-        s_totalDepositos += msg.value;
+        s_totalBalance += msg.value;
         s_cantidadDepositos++;
 
         emit KipuBank_Deposito(msg.sender, msg.value);
@@ -119,7 +121,7 @@ contract KipuBank {
 
         // checks-effects-interactions
         s_saldos[msg.sender] -= _monto;
-        s_totalDepositos -= _monto;
+        s_totalBalance -= _monto;
         s_cantidadRetiros++;
 
         (bool ok, ) = msg.sender.call{value: _monto}("");
@@ -144,7 +146,7 @@ contract KipuBank {
         }
 
         s_saldos[msg.sender] += msg.value;
-        s_totalDepositos += msg.value;
+        s_totalBalance += msg.value;
         s_cantidadDepositos++;
 
         emit KipuBank_Recepcion(msg.sender, msg.value);
@@ -155,8 +157,10 @@ contract KipuBank {
     fallback() external payable {
         // Si se envía ether con data no reconocida, se rechaza
         if (msg.value > 0) {
-            revert KipuBank_DepositoFueraDeLimite();
+            revert KipuBank_TransaccionNoPermitida();
         }
+        // Si no hay valor pero se llama con data no reconocida, también se rechaza
+        revert KipuBank_TransaccionNoPermitida();
     }
 
     /// @notice Función privada de utilidad para verificar capacidad
@@ -164,6 +168,6 @@ contract KipuBank {
     /// @param _monto Monto a verificar
     /// @return True si supera la capacidad, false en caso contrario
     function _superoCapacidad(uint256 _monto) private view returns (bool) {
-        return (s_totalDepositos + _monto > i_bankCap);
+        return (s_totalBalance + _monto > i_bankCap);
     }
 }
